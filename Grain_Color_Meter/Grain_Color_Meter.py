@@ -21,7 +21,7 @@ def prerpoc(img: str, open_iter: int = 1, bg_iter: int = 5, preproc_1: str = Non
 
 
 def is_contour_rectangle(c):
-    # approximate the contour
+    # Определение того, является ли контур квадратным
     peri = cv2.arcLength(c, True)
     approx = cv2.approxPolyDP(c, 0.02 * peri, True)
 
@@ -52,12 +52,12 @@ def delete_all_but_grains(img, true_cnts, preproc_2: str = None):
     return dst
 
 
-def color_meter(dst, img, K: int, res_img: str = None):
+def color_meter(dst, img, k: int, res_img: str = None):
     # Измерение цвета при помощи алгоритма k-means
-    Z = dst.reshape((-1, 3))
-    Z = np.float32(Z)
+    m = dst.reshape((-1, 3))
+    m = np.float32(m)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    ret, label, center = cv2.kmeans(Z, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    ret, label, center = cv2.kmeans(m, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
     center = np.uint8(center)
     color = list(filter(lambda x: x[:][:].all() != 0, center))[0].tolist()
     res = center[label.flatten()]
@@ -70,15 +70,18 @@ def color_meter(dst, img, K: int, res_img: str = None):
 
 
 def measure_color(image: str, preproc_1: str = None, preproc_2: str = None, res_img: str = None,
-                  open_iter: int = 1, bg_iter: int = 4, K: int = 2) -> list:
+                  open_iter: int = 1, bg_iter: int = 4, k: int = 2) -> list:
     """
     This function measures the color of the grains in the petri dish.
-    :param image: Image of the grains in the petri dish. In addition to a petri dish with grains, only rectangular objects (for example, a colorchecker) can be present in the photo.
+    :param image: Image of the grains in the petri dish. In addition to a petri dish with grains, only rectangular
+    objects (for example, a colorchecker) can be present in the photo.
     :param preproc_1: If True (or any string), preprocessed photo 1 (after deleting background) will be shown.
     :param preproc_2: It True (or any string), preprocessed photo 2 (after deleting all but grains) will be shown.
-    :param res_img: If True (or any string), final photo (with grains in only one, main color that will be returned) will be shown.
+    :param res_img: If True (or any string), final photo (with grains in only one, main color that will be returned)
+    will be shown.
     :param open_iter: The number of cv2.morphologyEx iterations (default 4)
     :param bg_iter: The number of cv2.dilate iterations (default 2)
+    :param k: The number of cluster to find using k-means algorithm
     :return: list containing color in RGB
     """
     img = cv2.imread(image)
@@ -87,10 +90,9 @@ def measure_color(image: str, preproc_1: str = None, preproc_2: str = None, res_
     mask = prerpoc(img,  open_iter, bg_iter, preproc_1)
 
     true_cnts = grain_contour_find(mask)
-    # print(f'Количество контуров = {len(true_cnts)}')
 
     dst = delete_all_but_grains(rgb, true_cnts, preproc_2)
 
-    color = color_meter(dst, img, K, res_img)
+    color = color_meter(dst, img, k, res_img)
 
     return color
